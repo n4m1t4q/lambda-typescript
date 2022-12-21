@@ -1,95 +1,114 @@
-# Serverless - AWS Node.js Typescript
+- [`0. バージョン確認`](#0-バージョン確認)
+- [`1. serverless framework インストール`](#1-serverless-framework-インストール)
+- [`2. sls-offline インストール`](#2-sls-offline-インストール)
+- [`3. ローカル実行`](#3-ローカル実行)
+- [`4. AWS プロファイル設定`](#4-aws-プロファイル設定)
+- [`5. デプロイ`](#5-デプロイ)
+- [`7. アンデプロイ`](#7-アンデプロイ)
 
-This project has been generated using the `aws-nodejs-typescript` template from the [Serverless framework](https://www.serverless.com/).
+## `0. バージョン確認`
 
-For detailed instructions, please refer to the [documentation](https://www.serverless.com/framework/docs/providers/aws/).
+```sh
+$ git --version
+git version 2.28.0.windows.1
 
-## Installation/deployment instructions
+$ npm -v
+8.1.2
 
-Depending on your preferred package manager, follow the instructions below to deploy your project.
+$ node -v
+v16.13.2
 
-> **Requirements**: NodeJS `lts/fermium (v.14.15.0)`. If you're using [nvm](https://github.com/nvm-sh/nvm), run `nvm use` to ensure you're using the same Node version in local and in your lambda's runtime.
-
-### Using NPM
-
-- Run `npm i` to install the project dependencies
-- Run `npx sls deploy` to deploy this stack to AWS
-
-### Using Yarn
-
-- Run `yarn` to install the project dependencies
-- Run `yarn sls deploy` to deploy this stack to AWS
-
-## Test your service
-
-This template contains a single lambda function triggered by an HTTP request made on the provisioned API Gateway REST API `/hello` route with `POST` method. The request body must be provided as `application/json`. The body structure is tested by API Gateway against `src/functions/hello/schema.ts` JSON-Schema definition: it must contain the `name` property.
-
-- requesting any other path than `/hello` with any other method than `POST` will result in API Gateway returning a `403` HTTP error code
-- sending a `POST` request to `/hello` with a payload **not** containing a string property named `name` will result in API Gateway returning a `400` HTTP error code
-- sending a `POST` request to `/hello` with a payload containing a string property named `name` will result in API Gateway returning a `200` HTTP status code with a message saluting the provided name and the detailed event processed by the lambda
-
-> :warning: As is, this template, once deployed, opens a **public** endpoint within your AWS account resources. Anybody with the URL can actively execute the API Gateway endpoint and the corresponding lambda. You should protect this endpoint with the authentication method of your choice.
-
-### Locally
-
-In order to test the hello function locally, run the following command:
-
-- `npx sls invoke local -f hello --path src/functions/hello/mock.json` if you're using NPM
-- `yarn sls invoke local -f hello --path src/functions/hello/mock.json` if you're using Yarn
-
-Check the [sls invoke local command documentation](https://www.serverless.com/framework/docs/providers/aws/cli-reference/invoke-local/) for more information.
-
-### Remotely
-
-Copy and replace your `url` - found in Serverless `deploy` command output - and `name` parameter in the following `curl` command in your terminal or in Postman to test your newly deployed application.
-
-```
-curl --location --request POST 'https://myApiEndpoint/dev/hello' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "name": "Frederic"
-}'
+$ cd ~/git
 ```
 
-## Template features
+## `1. serverless framework インストール`
 
-### Project structure
+```sh
+$ npm install -g serverless
 
-The project code base is mainly located within the `src` folder. This folder is divided in:
+$ sls create --template aws-nodejs-typescript --path lambda-typescript
 
-- `functions` - containing code base and configuration for your lambda functions
-- `libs` - containing shared code base between your lambdas
+$ cd lambda-typescript
 
-```
-.
-├── src
-│   ├── functions               # Lambda configuration and source code folder
-│   │   ├── hello
-│   │   │   ├── handler.ts      # `Hello` lambda source code
-│   │   │   ├── index.ts        # `Hello` lambda Serverless configuration
-│   │   │   ├── mock.json       # `Hello` lambda input parameter, if any, for local invocation
-│   │   │   └── schema.ts       # `Hello` lambda input event JSON-Schema
-│   │   │
-│   │   └── index.ts            # Import/export of all lambda configurations
-│   │
-│   └── libs                    # Lambda shared code
-│       └── apiGateway.ts       # API Gateway specific helpers
-│       └── handlerResolver.ts  # Sharable library for resolving lambda handlers
-│       └── lambda.ts           # Lambda middleware
-│
-├── package.json
-├── serverless.ts               # Serverless service file
-├── tsconfig.json               # Typescript compiler configuration
-├── tsconfig.paths.json         # Typescript paths
-└── webpack.config.js           # Webpack configuration
+$ npm install
 ```
 
-### 3rd party libraries
+## `2. sls-offline インストール`
 
-- [json-schema-to-ts](https://github.com/ThomasAribart/json-schema-to-ts) - uses JSON-Schema definitions used by API Gateway for HTTP request validation to statically generate TypeScript types in your lambda's handler code base
-- [middy](https://github.com/middyjs/middy) - middleware engine for Node.Js lambda. This template uses [http-json-body-parser](https://github.com/middyjs/middy/tree/master/packages/http-json-body-parser) to convert API Gateway `event.body` property, originally passed as a stringified JSON, to its corresponding parsed object
-- [@serverless/typescript](https://github.com/serverless/typescript) - provides up-to-date TypeScript definitions for your `serverless.ts` service file
+```sh
+$ npm install serverless-offline --save-dev
+```
 
-### Advanced usage
+## `3. ローカル実行`
 
-Any tsconfig.json can be used, but if you do, set the environment variable `TS_NODE_CONFIG` for building the application, eg `TS_NODE_CONFIG=./tsconfig.app.json npx serverless webpack`
+```sh
+$ sls offline
+```
+
+## `4. AWS プロファイル設定`
+
+IAM ユーザー作成
+
+```sh
+$ code -r ~/.aws/credentials
+```
+
+`~/.aws/credentials`
+
+```
+[sls-deploy-user]
+aws_access_key_id=
+aws_secret_access_key=
+```
+
+## `5. デプロイ`
+
+`serverless.ts`
+
+```ts
+const serverlessConfiguration: AWS = {
+  service: "lambda-typescript",
+  frameworkVersion: "3",
+  plugins: ["serverless-esbuild", "serverless-offline"],
+  provider: {
+    name: "aws",
+    runtime: "nodejs14.x",
+    apiGateway: {
+      minimumCompressionSize: 1024,
+      shouldStartNameWithService: true,
+    },
+    environment: {
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
+      NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
+    },
+    /** 追加 */
+    region: "ap-northeast-1",
+  },
+  // and more.
+};
+```
+
+```sh
+$ sls deploy --aws-profile sls-deploy-user --verbose
+
+# デプロイに成功するとコンソール上にエンドポイントが出力される
+
+✔ Service deployed to stack lambda-typescript-dev (132s)
+
+endpoint: POST - https://n5feqjwxkf.execute-api.ap-northeast-1.amazonaws.com/dev/hello
+functions:
+  hello: lambda-typescript-dev-hello (12 kB)
+
+Stack Outputs:
+  HelloLambdaFunctionQualifiedArn: arn:aws:lambda:ap-northeast-1:106096601035:function:lambda-typescript-dev-hello:2
+  ServiceEndpoint: https://n5feqjwxkf.execute-api.ap-northeast-1.amazonaws.com/dev
+  ServerlessDeploymentBucketName: lambda-typescript-dev-serverlessdeploymentbucket-nv6yes2m3g53
+
+Need a better logging experience than CloudWatch? Try our Dev Mode in console: run "serverless --console"
+```
+
+## `7. アンデプロイ`
+
+```sh
+$ sls remove --aws-profile sls-deploy-user --verbose
+```
