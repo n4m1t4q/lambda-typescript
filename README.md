@@ -39,6 +39,17 @@ $ npm install
 $ npm install serverless-offline --save-dev
 ```
 
+`serverless.ts`
+
+```ts
+const serverlessConfiguration: AWS = {
+  service: "lambda-typescript",
+  frameworkVersion: "3",
+  plugins: ["serverless-esbuild", "serverless-offline"], // 追加
+  // ...
+};
+```
+
 ## `3. ローカル実行`
 
 ```sh
@@ -84,7 +95,7 @@ const serverlessConfiguration: AWS = {
     /** 追加 */
     region: "ap-northeast-1",
   },
-  // and more.
+  // ...
 };
 ```
 
